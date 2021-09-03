@@ -139,10 +139,11 @@ TODO
 - can create a new Page ✅
 - can delete an existing Page ✅
 - can update an existing Page 
-- when doc is renamed (i.e new ref ID)
+- when doc is renamed (i.e new ref ID) 
   - can create new Page
   - can delete existing Page
 - can update Authors field correctly
+- can pull locale field from the front-matter
 - can create, delete, update i.e. handle a JP language Page
 
 */
