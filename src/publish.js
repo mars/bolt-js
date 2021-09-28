@@ -85,7 +85,7 @@ const getLocale = (lang) => {
   locales.set(new Set(['jp', 'ja-jp']), 'ja-JP');
 
   let currLocale;
-  locales.keys().forEach((k) => {
+  Array.from(locales.keys()).forEach((k) => {
     if (k.has(lang)) {
       currLocale = k.get(k);  
     }
