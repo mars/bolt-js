@@ -87,7 +87,7 @@ const getLocale = (lang) => {
   let currLocale;
   Array.from(locales.keys()).forEach((k) => {
     if (k.has(lang)) {
-      currLocale = k.get(k);  
+      currLocale = locales.get(k);  
     }
   });
   return currLocale;
