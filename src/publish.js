@@ -54,13 +54,22 @@ async function publishToCms() {
       })
       .then((entry) => console.log(`Entry ${entry.sys.id} updated.`))
       .catch(err => {
-        console.log("Update attempted and failed: ", err);
-        // create a new entry
-        client.getSpace(spaceId)
-        .then((space) => space.getEnvironment(envId))
-        .then((environment) => environment.createEntryWithId('page', refId, getPageEntry(frontMatter)))
-        .then((entry) => console.log("Entry created: ", entry.sys.id))
-        .catch((error) => console.log("Create attempted and failed: ", error))
+        if (err.status === 404) {
+          console.log("+ Existing entry not found, creating new: \n");
+          // create a new entry
+          client.getSpace(spaceId)
+          .then((space) => space.getEnvironment(envId))
+          .then((environment) => {
+            console.log('++ ref id is++\n', refId);
+            let pageEntry = getPageEntry(frontMatter, path);
+            console.log('++ Here is the page entry++\n', pageEntry);
+            environment.createEntryWithId('page', refId, pageEntry)
+          })
+          .then((entry) => console.log("Entry created: ", entry.sys.id))
+          .catch((error) => console.log("Create attempted and failed: ", error))
+        } else {
+          console.log(err)
+        }
       });
 
     } else {
@@ -94,7 +103,7 @@ const getLocale = (lang) => {
 }
 
 // returns a Page entry
-const getPageEntry = (frontMatter) => {
+const getPageEntry = (frontMatter, path) => {
   console.log('getting page entry', frontMatter);
   // search
   if (getLocale(frontMatter['lang'])) {
