@@ -25,7 +25,8 @@ publishToCms();
 */ 
 function formatRefId(path) {
   let refId = `${process.env.REPOSITORY}__${path}`
-  return refId.replaceAll('/', '_') // CMS accepts _, - or . in ids
+  // CMS accepts _, - or . in ids
+  return refId.replaceAll('/', '_') 
 }
 
 async function publishToCms() {
@@ -34,35 +35,37 @@ async function publishToCms() {
   for (const path of fPaths) {
     const fContent = allChangedFiles[path];
     const refId = formatRefId(path);
-    // attempt to fetch the existing entry
-
-    // creates entry if changed file has content
+    
+    // if changed file has content
     if (fContent !== null) {
       const { frontMatter } = parse(fContent);
+      const currLocale = getLocale(frontMatter['lang']);
+      console.log('curr locale is ', currLocale);
+      // Attempt to update entry  
       client.getSpace(spaceId)
+      .then((space) => space.getEnvironment(envId))
+      .then((environment) => environment.getEntry(refId))
+      .then((entry) => {
+        entry.fields.title[currLocale] = frontMatter['title'];
+        entry.fields.author[currLocale] = [process.env.AUTHOR];
+        entry.fields.markdown[currLocale] = fContent;
+        entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
+        return entry.update();
+      })
+      .then((entry) => console.log(`Entry ${entry.sys.id} updated.`))
+      .catch(err => {
+        console.log("Update attempted and failed: ", err);
+        // create a new entry
+        client.getSpace(spaceId)
         .then((space) => space.getEnvironment(envId))
-        .then((environment) => environment.createEntryWithId('page', refId, {
-          fields: {
-            title: {
-              'en-US': frontMatter['title']
-            },
-            author: {
-              'en-US': [process.env.AUTHOR]
-            },
-            source: {
-              // TODO: logic to handle ja-JP locale
-              'en-US': `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`,
-            },
-            markdown: {
-              'en-US': fContent
-            },
-          }
-        }))
-        .then((entry) => console.log(entry))
-        .catch((error) => console.log(error))
+        .then((environment) => environment.createEntryWithId('page', refId, getPageEntry(frontMatter)))
+        .then((entry) => console.log("Entry created: ", entry.sys.id))
+        .catch((error) => console.log("Create attempted and failed: ", error))
+      });
+
     } else {
-      // content associated with a deleted or renamed file
-      // TODO: should delete or archive?
+      // When there's no content, a file is deleted or renamed
+      // TODO: could this be archive action?
       client.getSpace(spaceId)
         .then(space => space.getEnvironment(envId))
         .then(environment => environment.deleteEntry(refId))
@@ -73,10 +76,47 @@ async function publishToCms() {
   }
 }
 
-// returns an object of type Page
-function formatPage() {
-  // TODO: Implement
-  return;
+// utility structure for supported locale lookup
+const getLocale = (lang) => {
+  console.log('getting locale', lang);
+  if (!lang) return;
+  const locales =  new Map();
+  locales.set(new Set(['en', 'en-US']), 'en-US');
+  locales.set(new Set(['jp', 'ja-jp']), 'ja-JP');
+
+  let currLocale;
+  locales.keys().forEach((k) => {
+    if (k.has(lang)) {
+      currLocale = k.get(k);  
+    }
+  });
+  return currLocale;
+}
+
+// returns a Page entry
+const getPageEntry = (frontMatter) => {
+  console.log('getting page entry', frontMatter);
+  // search
+  if (getLocale(frontMatter['lang'])) {
+    return {
+      fields: {
+        title: {
+          currLocale: frontMatter['title']
+        },
+        author: {
+          currLocale: [process.env.AUTHOR]
+        },
+        source: {
+          currLocale: `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`,
+        },
+        markdown: {
+          currLocale: fContent
+        },
+      }
+    };
+  } else {
+    return null;
+  }
 }
 
 // returns changed filepaths including docs/* only
@@ -138,7 +178,7 @@ const hasFrontMatter = (lexed) => {
 TODO
 - can create a new Page ✅
 - can delete an existing Page ✅
-- can update an existing Page 
+- can update an existing Page 💡
 - when doc is renamed (i.e new ref ID) 
   - can create new Page
   - can delete existing Page
