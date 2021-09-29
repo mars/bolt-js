@@ -65,7 +65,7 @@ async function publishToCms() {
             console.log('++ Here is the page entry++\n', pageEntry);
             environment.createEntryWithId('page', refId, pageEntry)
           })
-          .then((entry) => console.log("Entry created: ", entry.sys.id))
+          .then((entry) => console.log("Entry created: ", entry))
           .catch((error) => console.log("Create attempted and failed: ", error))
         // } else {
         //   console.log(err)
