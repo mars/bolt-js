@@ -96,6 +96,7 @@ async function publishToCms() {
           console.log('DELETE ERROR: ', error)
         })
     }
+  }
 }
 
 // utility structure for supported locale lookup
