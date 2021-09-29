@@ -22,11 +22,29 @@ publishToCms();
   returns a formatted reference id:
   in format of <org>_<repo>__docs_<filename>
   i.e. slackapi_bolt-js__docs_mydoc.md
+  Note: CMS accepts only _, - or . in ids
 */ 
-function formatRefId(path) {
-  let refId = `${process.env.REPOSITORY}__${path}`
-  // CMS accepts _, - or . in ids
-  return refId.replaceAll('/', '_') 
+function formatRefId(path, locale) {
+  let refId;
+  /**
+   * languages in other files contain a prefix 
+   * e.g. ja_ in docs/__advanced/ja_document_name_here
+   * for non en-US locales
+   * remove the language prefix on the filename
+   * before generating the refId
+   * e.g. docs/ja_document_name_here => docs/document_name_here 
+   * */
+  if(locale !== 'en-US') {
+    console.log('++ the path before is ', path);
+    let tmp = path.split('/');
+    let filename = tmp[tmp.length - 1];
+    let i = filename.indexOf('_');
+    tmp[tmp.length - 1] = filename.slice(i + 1);
+    path = tmp.join('_');
+    console.log('++ the path after is ', path);
+  }
+  refId = `${process.env.REPOSITORY}__${path}`;
+  return refId.replaceAll('/', '_'); 
 }
 
 async function publishToCms() {
@@ -40,7 +58,6 @@ async function publishToCms() {
     if (fContent !== null) {
       const { frontMatter } = parse(fContent);
       const currLocale = getLocale(frontMatter['lang']);
-      console.log('curr locale is ', currLocale);
       // Attempt to update entry  
       client.getSpace(spaceId)
       .then((space) => space.getEnvironment(envId))
@@ -52,24 +69,18 @@ async function publishToCms() {
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
         return entry.update();
       })
-      .then((entry) => console.log(`Entry ${entry.sys.id} updated.`))
+      .then((entry) => console.log(`LOG: ${entry.sys.id} updated.`))
       .catch(err => {
-        // if (err.NotFound) {
-          console.log("+ Existing entry not found, creating new: \n");
-          // create a new entry
-          client.getSpace(spaceId)
-          .then((space) => space.getEnvironment(envId))
-          .then((environment) => {
-            console.log('++ ref id is++\n', refId);
-            let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
-            console.log('++ Here is the page entry++\n', pageEntry);
-            environment.createEntryWithId('page', refId, pageEntry)
-          })
-          .then((entry) => console.log("Entry created: ", entry))
-          .catch((error) => console.log("Create attempted and failed: ", error))
-        // } else {
-        //   console.log(err)
-        // }
+        console.log("LOG: Existing entry not found, creating new: \n");
+        // create a new entry
+        client.getSpace(spaceId)
+        .then((space) => space.getEnvironment(envId))
+        .then((environment) => {
+          let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
+          environment.createEntryWithId('page', refId, pageEntry)
+        })
+        .then((entry) => console.log("LOG: New entry created: ", entry))
+        .catch((error) => console.log("LOG: Create attempted and failed: ", error))
       });
 
     } else {
@@ -187,12 +198,12 @@ const hasFrontMatter = (lexed) => {
 TODO
 - can create a new Page ✅
 - can delete an existing Page ✅
-- can update an existing Page 💡
+- can update an existing Page ✅
 - when doc is renamed (i.e new ref ID) 
-  - can create new Page
+  - can create new Page 
   - can delete existing Page
-- can update Authors field correctly
-- can pull locale field from the front-matter
+- can update Authors field with the full list of authors
+- can pull locale field from the front-matter 
 - can create, delete, update i.e. handle a JP language Page
 
 */

@@ -1,6 +1,6 @@
 ---
 title: Sending messages
-lang: en
+lang: en-US
 slug: message-sending
 order: 1
 ---
