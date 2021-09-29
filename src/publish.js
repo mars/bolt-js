@@ -75,8 +75,8 @@ async function publishToCms() {
       .catch(err => {
         console.log("LOG: There was an error: \n", err);
         console.log('Trying to print error status1', typeof err);
-        console.log('Trying to print error status2', err['status']);
-        console.log('Trying to print error status3', err.NotFound);
+        console.log('Trying to print error status2', err.keys());
+        console.log('Trying to print error status3', err.entries());
       });
 
       // Create a new entry
