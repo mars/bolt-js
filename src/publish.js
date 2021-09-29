@@ -61,7 +61,7 @@ async function publishToCms() {
           .then((space) => space.getEnvironment(envId))
           .then((environment) => {
             console.log('++ ref id is++\n', refId);
-            let pageEntry = getPageEntry(frontMatter, path, fContent);
+            let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
             console.log('++ Here is the page entry++\n', pageEntry);
             environment.createEntryWithId('page', refId, pageEntry)
           })
@@ -103,7 +103,7 @@ const getLocale = (lang) => {
 }
 
 // returns a Page entry
-const getPageEntry = (frontMatter, path, fContent) => {
+const getPageEntry = (frontMatter, currLocale, path, fContent) => {
   console.log('getting page entry', frontMatter);
   // search
   if (getLocale(frontMatter['lang'])) {
