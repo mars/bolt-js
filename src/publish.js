@@ -58,33 +58,36 @@ async function publishToCms() {
     if (fContent !== null) {
       const { frontMatter } = parse(fContent);
       const currLocale = getLocale(frontMatter['lang']);
+      
       // Attempt to update entry  
       client.getSpace(spaceId)
       .then((space) => space.getEnvironment(envId))
       .then((environment) => environment.getEntry(refId))
-      .then((entry) => {
+      .then(async (entry) => {
+        console.log('LOG: Existing entry, updating.. ', entry.sys.id);
         entry.fields.title[currLocale] = frontMatter['title'];
         entry.fields.author[currLocale] = [process.env.AUTHOR];
         entry.fields.markdown[currLocale] = fContent;
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
-        return entry.update();
+        await entry.update();
+        console.log('LOG: we should have updated the entry!');
       })
-      .then((entry) => console.log(`LOG: ${entry.sys.id} updated.`))
       .catch(err => {
-        console.log("LOG: Existing entry not found, creating new: \n");
-        // create a new entry
-        client.getSpace(spaceId)
-        .then((space) => space.getEnvironment(envId))
-        .then((environment) => {
-          let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
-          environment.createEntryWithId('page', refId, pageEntry)
-        })
-        .then((entry) => console.log("LOG: New entry created: ", entry))
-        .catch((error) => console.log("LOG: Create attempted and failed: ", error))
+        console.log("LOG: There was an error: \n", err);
       });
 
-    } else {
-      // When there's no content, a file is deleted or renamed
+      // // create a new entry
+      // client.getSpace(spaceId)
+      // .then((space) => space.getEnvironment(envId))
+      // .then((environment) => {
+      //   let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
+      //   environment.createEntryWithId('page', refId, pageEntry)
+      // })
+      // .then((entry) => console.log("LOG: New entry created: ", entry))
+      // .catch((error) => console.log("LOG: Create attempted and failed: ", error))
+    }
+    // When there's no content, a file is deleted or renamed
+    if (fContent === null) {
       // TODO: could this be archive action?
       client.getSpace(spaceId)
         .then(space => space.getEnvironment(envId))
@@ -93,7 +96,6 @@ async function publishToCms() {
           console.log('DELETE ERROR: ', error)
         })
     }
-  }
 }
 
 // utility structure for supported locale lookup
