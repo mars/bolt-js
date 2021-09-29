@@ -70,7 +70,7 @@ async function publishToCms() {
         entry.fields.markdown[currLocale] = fContent;
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
         await entry.update();
-        console.log('LOG: we should have updated the entry!');
+        console.log('LOG: we should have updated the entry!', entry);
       })
       .catch(err => {
         console.log("LOG: There was an error: \n", err);
