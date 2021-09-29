@@ -54,7 +54,7 @@ async function publishToCms() {
       })
       .then((entry) => console.log(`Entry ${entry.sys.id} updated.`))
       .catch(err => {
-        if (err['status'] === 404) {
+        if (err.NotFound) {
           console.log("+ Existing entry not found, creating new: \n");
           // create a new entry
           client.getSpace(spaceId)
