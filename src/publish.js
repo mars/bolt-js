@@ -54,7 +54,7 @@ async function publishToCms() {
       })
       .then((entry) => console.log(`Entry ${entry.sys.id} updated.`))
       .catch(err => {
-        if (err.NotFound) {
+        // if (err.NotFound) {
           console.log("+ Existing entry not found, creating new: \n");
           // create a new entry
           client.getSpace(spaceId)
@@ -67,9 +67,9 @@ async function publishToCms() {
           })
           .then((entry) => console.log("Entry created: ", entry.sys.id))
           .catch((error) => console.log("Create attempted and failed: ", error))
-        } else {
-          console.log(err)
-        }
+        // } else {
+        //   console.log(err)
+        // }
       });
 
     } else {
