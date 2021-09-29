@@ -110,7 +110,7 @@ const getPageEntry = (frontMatter, currLocale, path, fContent) => {
     return {
       fields: {
         title: {
-          currLocale: frontMatter['title']
+          [currLocale]: frontMatter['title']
         },
         author: {
           [currLocale]: [process.env.AUTHOR]
