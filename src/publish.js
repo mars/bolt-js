@@ -73,11 +73,10 @@ async function publishToCms() {
         console.log('LOG: we should have updated the entry!', entry);
       })
       .catch(err => {
-        let parsed = JSON.parse(err);
         console.log("LOG: There was an error: \n", err);
         console.log('Trying to print error status1', typeof err);
-        console.log('Trying to print error status2', parsed['status']);
-        console.log('Trying to print error status3', parsed.NotFound);
+        console.log('Trying to print error status2', err['status']);
+        console.log('Trying to print error status3', err.NotFound);
       });
 
       // Create a new entry
@@ -206,6 +205,7 @@ TODO
 - can create a new Page ✅
 - can delete an existing Page ✅
 - can update an existing Page ✅
+- change it so that docs are identified by slug
 - when doc is renamed (i.e new ref ID) 
   - can create new Page 
   - can delete existing Page
