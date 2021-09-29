@@ -113,13 +113,13 @@ const getPageEntry = (frontMatter, path, fContent) => {
           currLocale: frontMatter['title']
         },
         author: {
-          currLocale: [process.env.AUTHOR]
+          [currLocale]: [process.env.AUTHOR]
         },
         source: {
-          currLocale: `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`,
+          [currLocale]: `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`,
         },
         markdown: {
-          currLocale: fContent
+          [currLocale]: fContent
         },
       }
     };
