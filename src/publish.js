@@ -59,7 +59,7 @@ async function publishToCms() {
       const { frontMatter } = parse(fContent);
       const currLocale = getLocale(frontMatter['lang']);
       
-      // Attempt to update entry  
+      // Try to update entry  
       client.getSpace(spaceId)
       .then((space) => space.getEnvironment(envId))
       .then((environment) => environment.getEntry(refId))
@@ -73,10 +73,14 @@ async function publishToCms() {
         console.log('LOG: we should have updated the entry!', entry);
       })
       .catch(err => {
+        let parsed = JSON.parse(err);
         console.log("LOG: There was an error: \n", err);
+        console.log('Trying to print error status1', typeof err);
+        console.log('Trying to print error status2', parsed['status']);
+        console.log('Trying to print error status3', parsed.NotFound);
       });
 
-      // // create a new entry
+      // Create a new entry
       // client.getSpace(spaceId)
       // .then((space) => space.getEnvironment(envId))
       // .then((environment) => {
