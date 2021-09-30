@@ -1,9 +1,6 @@
 /* 
-  This script is responsible for: 
-  - Triggered by GA workflow
-  - Connecting with contentful API
-  - Accomplishes a simple update action 
-  - Runs a secondary parse script
+  This script is triggered by github actions workflow and is responsible for
+  publishing documentation updates to contentful cms
  */
 import contentful from 'contentful-management';
 import fs from 'fs';
@@ -18,11 +15,92 @@ const client = contentful.createClient({
 
 publishToCms();
 
-/* 
-  returns a formatted reference id:
-  in format of <org>_<repo>__docs_<filename>
-  i.e. slackapi_bolt-js__docs_mydoc.md
-  Note: CMS accepts only _, - or . in ids
+async function publishToCms() {
+  const allChangedFiles = await readData(getPaths());
+  const fPaths = Object.keys(allChangedFiles);
+  // process each changed file
+  for (const path of fPaths) {
+    const fContent = allChangedFiles[path];
+    const refId = formatRefId(path);
+    const log = {};
+    
+    // if changed file has content
+    if (fContent !== null) {
+      // arrange
+      if (!hasRequiredFields(fContent)) {
+        log[path] = 'Missing required fields';
+        continue;
+      }
+      const { frontMatter } = parse(fContent);
+      const currLocale = getLocale(frontMatter['lang']);
+      
+      // Try to update entry  
+      client.getSpace(spaceId)
+      .then((space) => space.getEnvironment(envId))
+      .then((environment) => environment.getEntry(refId))
+      .then(async (entry) => {
+        console.log('LOG: Existing entry, updating.. ', entry.sys.id);
+        entry.fields.title[currLocale] = frontMatter['title'];
+        entry.fields.author[currLocale] = [process.env.AUTHOR];
+        entry.fields.markdown[currLocale] = fContent;
+        entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
+        await entry.update();
+        console.log('LOG: Entry updated');
+        log[path] = `Entry updated: ${entry.sys.id} `;
+      })
+      .catch(err => {
+        // Create a new entry if entry is not found
+        if (err.name === 'NotFound') {
+          client.getSpace(spaceId)
+          .then((space) => space.getEnvironment(envId))
+          .then((environment) => {
+            let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
+            environment.createEntryWithId('page', refId, pageEntry)
+          })
+          .then((entry) => {
+            console.log("LOG: New entry created: ", entry)
+            log[path] = `New entry created: ${entry.sys.id}`;
+          })
+          .catch((error) => {
+            console.log("LOG: Create attempted and failed: ", error);
+            log[path] = `Create attempted and failed: ${error}`
+          });
+        } else {
+          console.log("LOG: Unresolved error: \n", err);
+          log[path] = `Unresolved error: ${err}`
+        }
+      });
+    }
+    // When there's no content, a file is deleted or renamed
+    if (fContent === null) {
+      // TODO: could this be archive action?
+      client.getSpace(spaceId)
+        .then(space => space.getEnvironment(envId))
+        .then(environment => environment.deleteEntry(refId))
+        .then(() => log[path] = `Deleted entry: ${refId}`)
+        .catch(error => {
+          console.log('DELETE ERROR: ', error);
+          log[path] = `Error deleting entry: ${error}`;
+        })
+    }
+    // TODO return this output to Github action
+    console.log('===LOG OUTPUT START====\n', log);
+    console.log('===LOG OUTPUT END======');
+  }
+}
+
+// helpers
+
+// checks for required fields
+const hasRequiredFields = ({ frontMatter }) => {
+  return frontMatter['slug'] && frontMatter['lang'] && frontMatter['title'];
+};
+
+/**
+ * returns a formatted reference id
+ * in format of <org>_<repo>__docs_<filename>
+ * i.e. slackapi_bolt-js__docs_mydoc.md
+ * Note: CMS accepts only _, - or . in ids
 */ 
 function formatRefId(path, locale) {
   let refId;
@@ -47,66 +125,11 @@ function formatRefId(path, locale) {
   return refId.replaceAll('/', '_'); 
 }
 
-async function publishToCms() {
-  const allChangedFiles = await readData(getPaths());
-  const fPaths = Object.keys(allChangedFiles);
-  for (const path of fPaths) {
-    const fContent = allChangedFiles[path];
-    const refId = formatRefId(path);
-    
-    // if changed file has content
-    if (fContent !== null) {
-      const { frontMatter } = parse(fContent);
-      const currLocale = getLocale(frontMatter['lang']);
-      
-      // Try to update entry  
-      client.getSpace(spaceId)
-      .then((space) => space.getEnvironment(envId))
-      .then((environment) => environment.getEntry(refId))
-      .then(async (entry) => {
-        console.log('LOG: Existing entry, updating.. ', entry.sys.id);
-        entry.fields.title[currLocale] = frontMatter['title'];
-        entry.fields.author[currLocale] = [process.env.AUTHOR];
-        entry.fields.markdown[currLocale] = fContent;
-        entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
-        await entry.update();
-        console.log('LOG: we should have updated the entry!', entry);
-      })
-      .catch(err => {
-        console.log("LOG: There was an error: \n", err);
-        console.log('Trying to print error status1', typeof err);
-        console.log('Trying to print error status2', Object.keys(err));
-        console.log('Trying to print error status3', Object.entries(err));
-      });
-
-      // Create a new entry
-      // client.getSpace(spaceId)
-      // .then((space) => space.getEnvironment(envId))
-      // .then((environment) => {
-      //   let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
-      //   environment.createEntryWithId('page', refId, pageEntry)
-      // })
-      // .then((entry) => console.log("LOG: New entry created: ", entry))
-      // .catch((error) => console.log("LOG: Create attempted and failed: ", error))
-    }
-    // When there's no content, a file is deleted or renamed
-    if (fContent === null) {
-      // TODO: could this be archive action?
-      client.getSpace(spaceId)
-        .then(space => space.getEnvironment(envId))
-        .then(environment => environment.deleteEntry(refId))
-        .catch(error => {
-          console.log('DELETE ERROR: ', error)
-        })
-    }
-  }
-}
-
-// utility structure for supported locale lookup
+// lookup supported locales
 const getLocale = (lang) => {
-  console.log('getting locale', lang);
   if (!lang) return;
   const locales =  new Map();
+  // TODO when supporting new locales, add an entry here
   locales.set(new Set(['en', 'en-US']), 'en-US');
   locales.set(new Set(['jp', 'ja-jp']), 'ja-JP');
 
@@ -119,7 +142,7 @@ const getLocale = (lang) => {
   return currLocale;
 }
 
-// returns a Page entry
+// formats a new page entry
 const getPageEntry = (frontMatter, currLocale, path, fContent) => {
   console.log('getting page entry', frontMatter);
   // search
@@ -205,12 +228,20 @@ TODO
 - can create a new Page ✅
 - can delete an existing Page ✅
 - can update an existing Page ✅
-- change it so that docs are identified by slug
-- when doc is renamed (i.e new ref ID) 
-  - can create new Page 
-  - can delete existing Page
+- add validation of front matter ✅
+- Add simple log ✅ 
+- 👀 using slug from front-matter for unique identifier
+  - when a slug is updated?? (i.e new ref ID) 
+    -  
+    - can delete existing Page
 - can update Authors field with the full list of authors
 - can pull locale field from the front-matter 
 - can create, delete, update i.e. handle a JP language Page
 
+
+Docs requirements
+- Slugs
+  - Slugs must be unique (excepting localized versions. These must always match in order
+    for articles in other languages to be associated properly). 
+  - Once a slug has been established, it should not be updated. Updating a slug will break links
 */
