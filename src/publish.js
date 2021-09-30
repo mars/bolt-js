@@ -93,7 +93,7 @@ async function publishToCms() {
 
 // checks for required fields
 const hasRequiredFields = ({ frontMatter }) => {
-  return frontMatter['slug'] && frontMatter['lang'] && frontMatter['title'];
+  return 'slug' in frontMatter && 'lang' in frontMatter && 'title' in frontMatter;
 };
 
 /**
