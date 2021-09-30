@@ -18,9 +18,10 @@ publishToCms();
 async function publishToCms() {
   const allChangedFiles = await readData(getPaths());
   const fPaths = Object.keys(allChangedFiles);
+  const log = {};
+  
   // process each changed file
   for (const path of fPaths) {
-    const log = {};
     const fContent = allChangedFiles[path];
     const refId = formatRefId(path);
     const { frontMatter } = parse(fContent);
