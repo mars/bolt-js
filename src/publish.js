@@ -20,18 +20,18 @@ async function publishToCms() {
   const fPaths = Object.keys(allChangedFiles);
   // process each changed file
   for (const path of fPaths) {
+    const log = {};
     const fContent = allChangedFiles[path];
     const refId = formatRefId(path);
-    const log = {};
+    const { frontMatter } = parse(fContent);
     
     // if changed file has content
     if (fContent !== null) {
       // arrange
-      if (!hasRequiredFields(fContent)) {
+      if (!hasRequiredFields(frontMatter)) {
         log[path] = 'Missing required fields';
         continue;
       }
-      const { frontMatter } = parse(fContent);
       const currLocale = getLocale(frontMatter['lang']);
       
       // Try to update entry  
@@ -92,8 +92,10 @@ async function publishToCms() {
 // helpers
 
 // checks for required fields
-const hasRequiredFields = ({ frontMatter }) => {
-  return frontMatter.slug && frontMatter.lang && frontMatter.title;
+const hasRequiredFields = (frontMatter) => {
+  return frontMatter.slug !== undefined &&
+   frontMatter.lang !== undefined &&
+    frontMatter.title !== undefined;
 };
 
 /**
