@@ -44,7 +44,8 @@ async function publishToCms() {
         entry.fields.markdown[currLocale] = fContent;
          // TODO: confirm
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
-        await entry.update();
+        const updated = await entry.update();
+        log[path] = updated;
       } catch (err) {
         if (err.name === "NotFound") {
           // create a new entry
@@ -63,7 +64,7 @@ async function publishToCms() {
           console.log('LOG: Version mismatch');
           log[path] = err.message;
         }
-        console.log(err);
+        console.log('Error processing the request',  err);
       }
     }
     // changed file has no content when slug is updated or file deleted
@@ -132,10 +133,11 @@ async function publishToCms() {
 
 // checks for required fields
 const hasRequiredFields = (frontMatter) => {
+  console.log('frontmatter\n', frontMatter);
   const { slug, lang, title } = frontMatter;
-  return (slug !== undefined || slug !== '' ) &&
-   (lang !== undefined || slug !== '') &&
-    (title !== undefined || slug !== '');
+  return (slug !== undefined && slug !== '' ) &&
+   (lang !== undefined && lang !== '') &&
+    (title !== undefined && title !== '');
 };
 
 /**
@@ -197,7 +199,6 @@ const getLocale = (lang) => {
 
 // formats a new page entry
 const getPageEntry = (frontMatter, currLocale, path, fContent) => {
-  console.log('getting page entry', frontMatter);
   // search
   if (getLocale(frontMatter['lang'])) {
     return {
