@@ -23,8 +23,8 @@ async function publishToCms() {
   // process each changed file
   for (const path of fPaths) {
     const fContent = allChangedFiles[path];
-    const refId = formatRefId(path);
     const { frontMatter } = parse(fContent);
+    const refId = formatRefId(frontMatter);
     
     // if changed file has content
     if (fContent !== null) {
@@ -49,18 +49,16 @@ async function publishToCms() {
         console.log('LOG: Entry updated');
         log[path] = `Entry updated: ${entry.sys.id} `;
       })
-      .catch(err => {
+      .catch((err) => {
         // Create a new entry if entry is not found
         if (err.name === 'NotFound') {
           client.getSpace(spaceId)
           .then((space) => space.getEnvironment(envId))
-          .then((environment) => {
+          .then(async (environment) => {
             let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
-            environment.createEntryWithId('page', refId, pageEntry)
-          })
-          .then((entry) => {
-            console.log("LOG: New entry created: ", entry)
-            log[path] = `New entry created: ${entry.sys.id}`;
+            await environment.createEntryWithId('page', refId, pageEntry);
+            console.log('LOG: Entry created');
+            log[path] = `Entry created: ${entry.sys.id} `;
           })
           .catch((error) => {
             console.log("LOG: Create attempted and failed: ", error);
@@ -101,30 +99,41 @@ const hasRequiredFields = (frontMatter) => {
 
 /**
  * returns a formatted reference id
- * in format of <org>_<repo>__docs_<filename>
+ * in format of <org>__<repo>__docs__<filename>
  * i.e. slackapi_bolt-js__docs_mydoc.md
  * Note: CMS accepts only _, - or . in ids
 */ 
-function formatRefId(path, locale) {
+// function formatRefId(path, locale) {
+//   let refId;
+//   /**
+//    * languages in other files contain a prefix 
+//    * e.g. ja_ in docs/_advanced/ja_document_name_here
+//    * for non en-US locales
+//    * remove the language prefix on the filename
+//    * before generating the refId
+//    * e.g. docs/ja_document_name_here => docs/document_name_here 
+//    * */
+//   if(locale !== 'en-US') {
+//     console.log('++ the path before is ', path);
+//     let tmp = path.split('/');
+//     let filename = tmp[tmp.length - 1];
+//     let i = filename.indexOf('_');
+//     tmp[tmp.length - 1] = filename.slice(i + 1);
+//     path = tmp.join('_');
+//     console.log('++ the path after is ', path);
+//   }
+//   refId = `${process.env.REPOSITORY}__${path}`;
+//   return refId.replaceAll('/', '_'); 
+// }
+
+function formatRefId(frontMatter) {
   let refId;
   /**
-   * languages in other files contain a prefix 
-   * e.g. ja_ in docs/__advanced/ja_document_name_here
-   * for non en-US locales
-   * remove the language prefix on the filename
-   * before generating the refId
-   * e.g. docs/ja_document_name_here => docs/document_name_here 
+   * generates a ref id in the following format:
+   * <org>_<repo>_<slug>
    * */
-  if(locale !== 'en-US') {
-    console.log('++ the path before is ', path);
-    let tmp = path.split('/');
-    let filename = tmp[tmp.length - 1];
-    let i = filename.indexOf('_');
-    tmp[tmp.length - 1] = filename.slice(i + 1);
-    path = tmp.join('_');
-    console.log('++ the path after is ', path);
-  }
-  refId = `${process.env.REPOSITORY}__${path}`;
+  refId = `${process.env.REPOSITORY}_${frontMatter.slug}`;
+  console.log('ref id is: \n', refId.replaceAll('/', '_'));
   return refId.replaceAll('/', '_'); 
 }
 
@@ -232,19 +241,31 @@ TODO
 - can delete an existing Page ✅
 - can update an existing Page ✅
 - add validation of front matter ✅
-- Add simple log ✅ 
-- 👀 using slug from front-matter for unique identifier
+- Add simple activity logging ✅
+- Make activity logging accessible to other github actions 
+- 👀 using slug from front-matter for unique identifier 
   - when a slug is updated?? (i.e new ref ID) 
-    -  
     - can delete existing Page
-- can update Authors field with the full list of authors
-- can pull locale field from the front-matter 
-- can create, delete, update i.e. handle a JP language Page
-
+- can pull locale field from the front-matter ✅
+- can add both english and japanese example at the same time
+- can create, delete, update i.e. handle a JP language Page 
+- can update Author(s) field with the full list of authors
+- Includes a tag field with the repo
+- Create a standalone triggerable publish action (not triggered by changed files) i.e. a publish-all
 
 Docs requirements
+- Required frontmatter: lang, title, slug (must be unique)
 - Slugs
+  - Slugs should use - not _ e.g. listening-messages
   - Slugs must be unique (excepting localized versions. These must always match in order
     for articles in other languages to be associated properly). 
   - Once a slug has been established, it should not be updated. Updating a slug will break links
+  - Slugs should also serve as the unique reference for the entry
+- Making a change
+  - Changing the name of a article, - update the title field (should match the filename)
+
+Migration requirements
+Handling failures
+- If update or creation or deletion fails, check the log
+
 */
