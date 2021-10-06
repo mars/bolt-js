@@ -5,6 +5,7 @@
 import contentful from 'contentful-management';
 import fs from 'fs';
 import marked from 'marked';
+import { env } from 'process';
 
 // init client
 const spaceId = 'lfws4sw3zx32';
@@ -26,20 +27,53 @@ async function publishToCms() {
     const { frontMatter } = parse(fContent);
     const refId = formatRefId(frontMatter);
     
+    const space = await client.getSpace(spaceId);
+    const environ = await space.getEnvironment(envId);
     // if changed file has content
     if (fContent !== null) {
-      // arrange
       if (!hasRequiredFields(frontMatter)) {
-        log[path] = 'Missing required fields';
+        log[path] = 'Front matter must have a valid lang, slug and title field';
         continue;
       }
       const currLocale = getLocale(frontMatter['lang']);
-      // Try go fetch the entry
-      const space = await client.getSpace(spaceId);
-      const env = await space.getEnvironment(envId);
-      const entry = await env.getEntry(refId);
-      console.log(entry);
-    //   // Try to update entry  
+      try {
+        // Try go fetch the entry
+        const entry = await environ.getEntry(refId);
+        entry.fields.title[currLocale] = frontMatter['title'];
+        entry.fields.author[currLocale] = [process.env.AUTHOR];
+        entry.fields.markdown[currLocale] = fContent;
+         // TODO: confirm
+        entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
+        await entry.update();
+      } catch (err) {
+        if (err.name === "NotFound") {
+          const pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
+          try {
+            await environ.createEntryWithId('page', refId, pageEntry);
+            console.log('LOG: Entry created');
+            log[path] = `Entry created: ${entry.sys.id} `;
+          } catch (error) {
+            console.log('LOG: Entry creation failed');
+            log[path] = error;
+          }
+        }
+        if (err.name === "VersionMismatch") {
+          console.log('LOG: Version mismatch');
+          log[path] = err.message;
+        }
+      }
+    }
+    // changed file has no content when filename is updated or file deleted
+    if (fContent === null) {
+      try {
+        const res = await environ.deleteEntry(refId);
+        log[path] = res;
+      } catch (err) {
+        console.log('Delete error: ', err);
+        log[path] = err.message;
+      }
+    }
+      // Try to update entry  
     //   client.getSpace(spaceId)
     //   .then((space) => space.getEnvironment(envId))
     //   .then((environment) => environment.getEntry(refId))
@@ -85,7 +119,6 @@ async function publishToCms() {
     //       console.log('DELETE ERROR: ', error);
     //       log[path] = `Error deleting entry: ${error}`;
     //     })
-    }
   }
   // TODO return this output to Github action
   console.log('===LOG OUTPUT START====\n', log);
