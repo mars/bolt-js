@@ -34,54 +34,58 @@ async function publishToCms() {
         continue;
       }
       const currLocale = getLocale(frontMatter['lang']);
-      
-      // Try to update entry  
-      client.getSpace(spaceId)
-      .then((space) => space.getEnvironment(envId))
-      .then((environment) => environment.getEntry(refId))
-      .then(async (entry) => {
-        console.log('LOG: Existing entry, updating.. ', entry.sys.id);
-        entry.fields.title[currLocale] = frontMatter['title'];
-        entry.fields.author[currLocale] = [process.env.AUTHOR];
-        entry.fields.markdown[currLocale] = fContent;
-        entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
-        await entry.update();
-        console.log('LOG: Entry updated');
-        log[path] = `Entry updated: ${entry.sys.id} `;
-      })
-      .catch((err) => {
-        // Create a new entry if entry is not found
-        if (err.name === 'NotFound') {
-          client.getSpace(spaceId)
-          .then((space) => space.getEnvironment(envId))
-          .then(async (environment) => {
-            let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
-            await environment.createEntryWithId('page', refId, pageEntry);
-            console.log('LOG: Entry created');
-            log[path] = `Entry created: ${entry.sys.id} `;
-          })
-          .catch((error) => {
-            console.log("LOG: Create attempted and failed: ", error);
-            log[path] = `Create attempted and failed: ${error}`
-          });
-        } else {
-          console.log("LOG: Unresolved error: \n", err);
-          log[path] = `Unresolved error: ${err}`
-        }
-      });
-    }
-    // When there's no content, a file is deleted or renamed
-    if (fContent === null) {
-      // TODO: could this be archive action?
-      client.getSpace(spaceId)
-        .then(space => space.getEnvironment(envId))
-        .then(environment => environment.deleteEntry(refId))
-        .then(() => log[path] = `Deleted entry: ${refId}`)
-        .catch(error => {
-          console.log('DELETE ERROR: ', error);
-          log[path] = `Error deleting entry: ${error}`;
-        })
-    }
+      // Try go fetch the entry
+      const space = await client.getSpace(spaceId);
+      const env = await space.getEnvironment(envId);
+      const entry = await env.getEntry(refId);
+      console.log(entry);
+    //   // Try to update entry  
+    //   client.getSpace(spaceId)
+    //   .then((space) => space.getEnvironment(envId))
+    //   .then((environment) => environment.getEntry(refId))
+    //   .then(async (entry) => {
+    //     console.log('LOG: Existing entry, updating.. ', entry.sys.id);
+    //     entry.fields.title[currLocale] = frontMatter['title'];
+    //     entry.fields.author[currLocale] = [process.env.AUTHOR];
+    //     entry.fields.markdown[currLocale] = fContent;
+    //     entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
+    //     await entry.update();
+    //     console.log('LOG: Entry updated');
+    //     log[path] = `Entry updated: ${entry.sys.id} `;
+    //   })
+    //   .catch((err) => {
+    //     // Create a new entry if entry is not found
+    //     if (err.name === 'NotFound') {
+    //       client.getSpace(spaceId)
+    //       .then((space) => space.getEnvironment(envId))
+    //       .then(async (environment) => {
+    //         let pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
+    //         await environment.createEntryWithId('page', refId, pageEntry);
+    //         console.log('LOG: Entry created');
+    //         log[path] = `Entry created: ${entry.sys.id} `;
+    //       })
+    //       .catch((error) => {
+    //         console.log("LOG: Create attempted and failed: ", error);
+    //         log[path] = `Create attempted and failed: ${error}`
+    //       });
+    //     } else {
+    //       console.log("LOG: Unresolved error: \n", err);
+    //       log[path] = `Unresolved error: ${err}`
+    //     }
+    //   });
+    // }
+    // // When there's no content, a file is deleted or renamed
+    // if (fContent === null) {
+    //   // TODO: could this be archive action?
+    //   client.getSpace(spaceId)
+    //     .then(space => space.getEnvironment(envId))
+    //     .then(environment => environment.deleteEntry(refId))
+    //     .then(() => log[path] = `Deleted entry: ${refId}`)
+    //     .catch(error => {
+    //       console.log('DELETE ERROR: ', error);
+    //       log[path] = `Error deleting entry: ${error}`;
+    //     })
+    // }
   }
   // TODO return this output to Github action
   console.log('===LOG OUTPUT START====\n', log);
