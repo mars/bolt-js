@@ -14,7 +14,11 @@ const client = contentful.createClient({
   accessToken: process.env.CONTENTFUL_API_KEY
 });
 
-publishToCms();
+try {
+  publishToCms();
+} catch (error) {
+  console.log('Error processing request', error);
+}
 
 async function publishToCms() {
   const allChangedFiles = await readData(getPaths());
@@ -42,7 +46,6 @@ async function publishToCms() {
         entry.fields.title[currLocale] = frontMatter['title'];
         entry.fields.author[currLocale] = [process.env.AUTHOR];
         entry.fields.markdown[currLocale] = fContent;
-         // TODO: confirm
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
         const updated = await entry.update();
         log[path] = updated;
@@ -64,7 +67,6 @@ async function publishToCms() {
           console.log('LOG: Version mismatch');
           log[path] = err.message;
         }
-        console.log('Error processing the request',  err);
       }
     }
     // changed file has no content when slug is updated or file deleted
