@@ -1,7 +1,6 @@
 ---
 title: Authorization
 lang: en
-slug: authorization
 order: 2
 ---
 

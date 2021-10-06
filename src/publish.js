@@ -47,6 +47,7 @@ async function publishToCms() {
         await entry.update();
       } catch (err) {
         if (err.name === "NotFound") {
+          // create a new entry
           const pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
           try {
             const entry = await environ.createEntryWithId('page', refId, pageEntry);
@@ -58,9 +59,11 @@ async function publishToCms() {
           }
         }
         if (err.name === "VersionMismatch") {
+          // tried to update something whose version is different
           console.log('LOG: Version mismatch');
           log[path] = err.message;
         }
+        console.log(err);
       }
     }
     // changed file has no content when filename is updated or file deleted
