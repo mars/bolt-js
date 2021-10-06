@@ -66,7 +66,7 @@ async function publishToCms() {
         console.log(err);
       }
     }
-    // changed file has no content when filename is updated or file deleted
+    // changed file has no content when slug is updated or file deleted
     if (fContent === null) {
       try {
         const res = await environ.deleteEntry(refId);
@@ -132,9 +132,10 @@ async function publishToCms() {
 
 // checks for required fields
 const hasRequiredFields = (frontMatter) => {
-  return frontMatter.slug !== undefined &&
-   frontMatter.lang !== undefined &&
-    frontMatter.title !== undefined;
+  const { slug, lang, title } = frontMatter;
+  return (slug !== undefined || slug !== '' ) &&
+   (lang !== undefined || slug !== '') &&
+    (title !== undefined || slug !== '');
 };
 
 /**
