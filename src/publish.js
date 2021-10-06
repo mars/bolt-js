@@ -49,7 +49,7 @@ async function publishToCms() {
         if (err.name === "NotFound") {
           const pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
           try {
-            await environ.createEntryWithId('page', refId, pageEntry);
+            const entry = await environ.createEntryWithId('page', refId, pageEntry);
             console.log('LOG: Entry created');
             log[path] = `Entry created: ${entry.sys.id} `;
           } catch (error) {
