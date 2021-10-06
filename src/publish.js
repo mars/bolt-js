@@ -85,7 +85,7 @@ async function publishToCms() {
     //       console.log('DELETE ERROR: ', error);
     //       log[path] = `Error deleting entry: ${error}`;
     //     })
-    // }
+    }
   }
   // TODO return this output to Github action
   console.log('===LOG OUTPUT START====\n', log);
