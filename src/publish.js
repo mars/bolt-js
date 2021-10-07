@@ -5,7 +5,6 @@
 import contentful from 'contentful-management';
 import fs from 'fs';
 import marked from 'marked';
-import { env } from 'process';
 
 // init client
 const spaceId = 'lfws4sw3zx32';
@@ -21,6 +20,8 @@ try {
 }
 
 async function publishToCms() {
+  const allFiles = getAllPaths();
+  console.log(allFiles);
   const allChangedFiles = await readData(getPaths());
   const fPaths = Object.keys(allChangedFiles);
   const log = {};
@@ -41,24 +42,23 @@ async function publishToCms() {
       }
       const currLocale = getLocale(frontMatter['lang']);
       try {
-        // Try go fetch the entry
+        // Try fetch the entry
         const entry = await environ.getEntry(refId);
         entry.fields.title[currLocale] = frontMatter['title'];
         entry.fields.author[currLocale] = [process.env.AUTHOR];
         entry.fields.markdown[currLocale] = fContent;
         entry.fields.source[currLocale] = `https://github.com/${process.env.REPOSITORY}/blob/main/${path}`;
         const updated = await entry.update();
-        log[path] = updated;
+        // TODO: Temp logger
+        log[path] = `Entry updated: ${updated.sys.id} on ${updated.sys.updatedAt} by ${updated.sys.updatedBy}`;
       } catch (err) {
         if (err.name === "NotFound") {
           // create a new entry
           const pageEntry = getPageEntry(frontMatter, currLocale, path, fContent);
           try {
             const entry = await environ.createEntryWithId('page', refId, pageEntry);
-            console.log('LOG: Entry created');
-            log[path] = `Entry created: ${entry.sys.id} `;
+            log[path] = `Entry created: ${entry.sys.id} on ${updated.sys.createdAt} by ${updated.sys.createdBy}`;
           } catch (error) {
-            console.log('LOG: Entry creation failed');
             log[path] = error;
           }
         }
@@ -222,6 +222,10 @@ const getPageEntry = (frontMatter, currLocale, path, fContent) => {
   } else {
     return null;
   }
+}
+// returns filepaths for all docs files
+function getAllPaths() {
+  return process.env.ALL_FILES.split(' ')
 }
 
 // returns changed filepaths including docs/* only
