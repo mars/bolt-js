@@ -20,8 +20,7 @@ try {
 }
 
 async function publishToCms() {
-  const allFiles = getAllPaths();
-  console.log(allFiles);
+  // const allFiles = getAllPaths(); // TODO: Read 
   const allChangedFiles = await readData(getPaths());
   const fPaths = Object.keys(allChangedFiles);
   const log = {};

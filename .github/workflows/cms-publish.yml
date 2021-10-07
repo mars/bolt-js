@@ -5,13 +5,12 @@
 name: Publish to CMS
 
 # workflow triggers
-on:
-  workflow_dispatch: 
-  push:
-    branches: [ cms-workflow, main ]   # testing only
-    paths:
-    # trigger on changes matching paths:
-    - 'docs/**'
+on: workflow_dispatch 
+  # push:
+  #   branches: [ cms-workflow, main ]   # testing only
+  #   paths:
+  #   # trigger on changes matching paths:
+  #   - 'docs/**'
 
 jobs:   
   publish:
