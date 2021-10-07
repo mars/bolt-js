@@ -6,9 +6,7 @@ name: Publish to CMS
 
 # workflow triggers
 on:
-  workflow_dispatch:
-    inputs: 
-      name: 'Workflow dispatch'
+  workflow_dispatch: 
   push:
     branches: [ cms-workflow, main ]   # testing only
     paths:
